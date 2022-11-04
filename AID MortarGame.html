@@ -1,0 +1,404 @@
+<html>
+
+      <canvas id="mycanvas" width="1000" height="600" style=" border: 3px #fc0e0e"></canvas>
+    
+  <script>
+
+    var g_Canvas = document.getElementById("mycanvas");
+    var g_Ctx = g_Canvas.getContext("2d");
+      
+    var g_FrameRate = 30;
+    var g_TimeInterval = 1000/g_FrameRate;
+      
+    var g_MoveRightFlag = 0;
+    var g_MoveLeftFlag = 0;
+    var g_MoveUpFlag = 0;
+    var g_MoveDownFlag = 0;
+      
+    var g_IsShellEnemiesCollide = 0;
+      
+    var g_MortarImage = new Image()
+    g_MortarImage.src = "Mortar1.PNG"; 
+      
+    var g_CanvasImage = new Image()
+    g_CanvasImage.src = "CanvasImage2.JPG";
+      
+    var g_TurrentImage = new Image()
+    g_TurrentImage.src = "Turrent1.PNG";
+      
+    var g_CannonImage = new Image()
+    g_CannonImage.src = "CannonBall.PNG"
+      
+    var g_EnemyImage = new Image()
+    g_EnemyImage.src = "robot1.gif"
+      
+     
+      
+  class C_Mortar
+      {
+          constructor(Mortarsizex,Mortarsizey,MortarXpos,MortarYpos)
+          {
+              this.MortarXpos = MortarXpos;
+              this.MortarYpos = MortarYpos;
+              this.MortarXSize = Mortarsizex;
+              this.MortarYSize = Mortarsizey;
+          }
+          
+          m_DrawMortar()
+          {
+              
+g_Ctx.drawImage(g_MortarImage,this.MortarXpos,this.MortarYpos,this.MortarXSize,this.MortarYSize)
+              
+          }
+      }
+    
+      
+      
+   class C_MortarGun
+       {
+           constructor(SquarexSize,SquareySize,SquareXpos,SquareYpos)
+          {
+             
+              this.Mortarxsize = SquarexSize;
+              this.Mortarysize = SquareySize;
+              this.Mortarxpos = SquareXpos;
+              this.Mortarypos = SquareYpos;
+              this.rotateAngle = 0
+              this.Mortarxcenter = this.Mortarxpos + this.Mortarxsize/2;
+              this.Mortarycenter = this.Mortarypos + this.Mortarysize/2;
+             
+             
+          }
+          
+          m_DrawRect()
+         { 
+             g_Ctx.save();
+             g_Ctx.translate(this.Mortarxcenter,this.Mortarycenter);
+             g_Ctx.rotate(Math.PI/180 * this.rotateAngle);
+             g_Ctx.drawImage(g_TurrentImage,0,-this.Mortarysize/2,this.Mortarxsize,this.Mortarysize); 
+             g_Ctx.restore();
+         }
+          
+          m_RotateFlag()
+          {
+              
+              if(g_MoveRightFlag == 1)
+                  {
+                     if(this.rotateAngle <= -15)
+                         {
+                      this.rotateAngle += 3;
+                         }
+                      
+                     
+                  }
+        
+              if(g_MoveLeftFlag == 1)
+                  {
+                      if(this.rotateAngle >= -90)
+                          {
+                      this.rotateAngle += -3;
+                          }
+                  }
+           }
+           
+       
+      
+       }
+      
+      
+      
+      
+      
+      class C_shell
+      {
+           constructor(Shellxpos,Shellypos)
+            {
+                this.ShellXpos = Shellxpos;
+                this.ShellYpos = Shellypos;
+                this.ShellRadius = 10;
+                this.IsSpacebarActive = 0;
+                this.ShellinitYspeed = -25;
+                this.ShellYspeed = -25;
+                this.ShellXspeed = 25;
+                this.Accelerate = 1;
+                this.srotateAngle = 0;
+            }
+            
+          m_DrawCircle()
+            {
+                  g_Ctx.beginPath() ; 
+                  g_Ctx.fillStyle = "black"
+                  g_Ctx.arc(this.ShellXpos,this.ShellYpos,this.ShellRadius,0,Math.PI*2);
+                  g_Ctx.fill()
+                  g_Ctx.closePath()
+
+            }
+
+              
+                  
+           
+      
+          m_MoveCircle()
+            {
+              
+               if(this.IsSpacebarActive == 1)
+                {  
+                   this.ShellYpos += Math.sin(this.srotateAngle*Math.PI/180)* this.ShellYspeed;         
+                   this.ShellXpos += Math.cos(this.srotateAngle*Math.PI/180)* this.ShellXspeed;
+                   this.ShellYspeed += this.Accelerate;
+                }
+                    
+            }
+         m_BoundaryCollision(l_canvasheight,l_canvaswidth)
+            { 
+         if(this.ShellYpos + this.ShellRadius >= l_canvasheight && this.IsSpacebarActive == 1 )
+              {
+         
+                 this.ShellXpos = 75; 
+                 this.ShellYpos = 532;
+                 this.ShellYspeed = this.ShellinitYspeed;
+                 this.IsSpacebarActive = 0;
+                
+              }
+        if(this.ShellXpos + this.ShellRadius >= l_canvaswidth && this.IsSpacebarActive == 1 )
+              {
+         
+                 this.ShellXpos = 75; 
+                 this.ShellYpos = 532;
+                 this.ShellYspeed = this.ShellinitYspeed;
+                 this.IsSpacebarActive = 0;
+                  
+              }
+                
+            }
+      } 
+      
+      
+      
+      class C_Enemy
+          {
+              constructor(squarexpos,squareypos,squaresize)
+              {
+                  this.EnemyXpos = squarexpos;
+                  this.EnemyYpos = squareypos;
+                  this.EnemySize = squaresize;
+                  this.EnemyXcenter = this.EnemyXpos + this.EnemySize/2;
+                  this.EnemyYcenter = this.EnemyYpos + this.EnemySize/2;
+                  this.EnemyXspeed = -5;
+              }
+              
+            m_DrawEnemies()
+              {
+                  
+                 g_Ctx.fillRect(this.EnemyXpos,this.EnemyYpos,this.EnemySize,this.EnemySize);
+              }
+              
+            m_MoveEnemies()
+              {
+                  this.EnemyXpos += this.EnemyXspeed;
+                  this.EnemyXcenter = this.EnemyXpos + this.EnemySize/2;
+                  
+              }
+            m_EnemiesDamage()
+              {
+                  if(this.EnemyXpos <=180)
+                      {
+                          HealthBar_1.HB_Xsize += -15
+                      }
+                  
+                  if(HealthBar_1.HB_Xsize <= 0)
+                      {
+                          HealthBar_1.HB_Xpos = 0
+                          
+                          g_Ctx.font = "100px verdana";
+                          g_Ctx.fillStyle = "black";
+                          g_Ctx.fillText("GAMEOVER",200,200)
+                      }
+                  if(HealthBar_1.HB_Xsize <= 110)
+                      {
+                          HealthBar_1.HB_Color = "orange"
+                          
+                          if(HealthBar_1.HB_Xsize <= 50)
+                              {
+                                  HealthBar_1.HB_Color = "red"
+                              }
+                      }
+              }
+              
+        
+            
+          }
+      
+      
+      
+      
+      
+      function f_Distance(x1,y1,x2,y2)
+       {
+         var l_Distance = Math.sqrt(Math.pow(x2 - x1,2)+Math.pow(y2 - y1,2));
+         return l_Distance
+       }
+       
+      
+    var g_DistanceshellEnemies = 0;
+      
+    
+    function f_shellsEnemies()
+          {
+          
+        
+ g_DistanceshellEnemies =f_Distance(Shell_1.ShellXpos,Shell_1.ShellYpos,Enemy_1.EnemyXcenter,Enemy_1.EnemyYcenter)
+           
+      if(g_DistanceshellEnemies <= (Shell_1.ShellRadius + Enemy_1.EnemySize/2))
+            {
+               Enemy_1.EnemyXpos = 1000;
+                Enemy_1.EnemyYpos = 400;
+            }
+              
+          }
+ 
+     class C_HealthBar
+      {
+  
+         constructor(HBxpos,HBypos,HBxsize,HBysize,HBcolor)
+          {
+              this.HB_Xpos = HBxpos
+              this.HB_Ypos = HBypos
+              this.HB_Xsize = HBxsize
+              this.HB_Ysize = HBysize
+              this.HB_Color = HBcolor
+          }
+          
+          m_HealthBarDamage()
+          {
+              g_Ctx.font = "20px gerogia"
+              g_Ctx.fillText("HEALTH",23,20)
+          
+              g_Ctx.strokeStyle = "black"
+              g_Ctx.strokeRect(24,24,201,21)
+          
+              g_Ctx.fillStyle = this.HB_Color
+              g_Ctx.fillRect(this.HB_Xpos,this.HB_Ypos,this.HB_Xsize,this.HB_Ysize)
+          }
+          
+         
+      }
+              
+      function f_ReplaceEnemies()
+      {
+         if(Enemy_1.EnemyXpos < 180)
+             {
+                 Enemy_1.EnemyXpos = 1000
+                 Enemy_1.EnemyYpos = 400
+             }
+      }
+      
+      function f_ClearCanvas()
+      {
+          g_Ctx.clearRect(0,0,g_Canvas.width,g_Canvas.height);
+          g_Ctx.drawImage(g_CanvasImage,0,0,g_Canvas.width,g_Canvas.height);
+      }
+      
+                    var Mortar_1 = new C_Mortar(200,100,20,510);
+                    
+             //SquarexSize,SquareySize,SquareXpos,SquareYpos
+                      var MortarGun_1 = new C_MortarGun(100,50,20,503);
+                      
+                      
+             //circlexpos,circleypos,circlecolour
+                      var Shell_1 = new C_shell(75,532,"pink");
+                      
+             //squarexpos,squareypos,squaresize 
+                      var Enemy_1 = new C_Enemy(1000,400,50);
+                      
+                   var HealthBar_1 = new C_HealthBar(25,25,200,20,"green")
+      function f_GameLoop()
+          {
+              MortarGun_1.m_RotateFlag();
+              Shell_1.m_MoveCircle();
+              Shell_1.m_BoundaryCollision(g_Canvas.height,g_Canvas.width);
+              Enemy_1.m_MoveEnemies();
+              
+             
+              f_ReplaceEnemies();
+              f_shellsEnemies();
+              f_ClearCanvas();
+              
+              Enemy_1.m_EnemiesDamage();
+              HealthBar_1.m_HealthBarDamage();
+              Mortar_1.m_DrawMortar();
+              MortarGun_1.m_DrawRect();
+              Shell_1.m_DrawCircle();
+              Enemy_1.m_DrawEnemies();
+             
+          }
+      
+      
+      
+      
+function f_KeydownEventHandler(l_eventData)
+    {
+        if(l_eventData.keyCode == 39 || l_eventData.keyCode == 68 )
+            {
+                g_MoveRightFlag = 1;
+            }
+        if(l_eventData.keyCode == 37 || l_eventData.keyCode == 65)
+            {
+                g_MoveLeftFlag = 1;
+            }
+        if(l_eventData.keyCode == 38 || l_eventData.keyCode == 87)
+            {
+                g_MoveUpFlag = 1;
+            }
+        if(l_eventData.keyCode == 40 || l_eventData.keyCode == 83)
+            {
+                g_MoveDownFlag = 1;
+            }
+        if(l_eventData.keyCode == 32 )
+            {
+                if(Shell_1.IsSpacebarActive == 0)
+                    {
+                        
+                        Shell_1.IsSpacebarActive = 1;
+                        Shell_1.srotateAngle = -MortarGun_1.rotateAngle;
+                    }
+                
+                console.log(MortarGun_1.rotateAngle+"____"+Shell_1.srotateAngle);
+            }
+    }
+              
+              
+function f_KeyUPEventHandler(l_eventData)
+    {
+     
+        if(l_eventData.keyCode == 39 || l_eventData.keyCode == 68)
+            {
+                g_MoveRightFlag = 0;
+            }
+        if(l_eventData.keyCode == 37 || l_eventData.keyCode == 65 )
+            {
+                g_MoveLeftFlag = 0;
+            }
+        if(l_eventData.keyCode == 38 || l_eventData.keyCode == 87)
+            {
+                g_MoveUpFlag = 0;
+            }
+        if(l_eventData.keyCode == 40 || l_eventData.keyCode == 83)
+            {
+                g_MoveDownFlag = 0;
+            }
+    
+        
+    }
+      
+     
+   var id = setInterval(f_GameLoop,g_TimeInterval)
+   
+    document.addEventListener("keydown",f_KeydownEventHandler);
+    document.addEventListener("keyup",f_KeyUPEventHandler); 
+    
+   
+   
+    </script>
+
+</html>
